@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, PlusCircle } from "lucide-react";
+import { LayoutDashboard, AlertTriangle, PlusCircle, Database } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -15,6 +15,7 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Assets", url: "/assets", icon: Database },
   { title: "Alerts", url: "/alerts", icon: AlertTriangle },
   { title: "Add Assets", url: "/add-assets", icon: PlusCircle },
 ];
