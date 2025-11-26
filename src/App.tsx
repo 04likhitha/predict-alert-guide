@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
+import Assets from "./pages/Assets";
 import Alerts from "./pages/Alerts";
 import AddAssets from "./pages/AddAssets";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,7 @@ const App = () => (
               </header>
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/assets" element={<Assets />} />
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/add-assets" element={<AddAssets />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
