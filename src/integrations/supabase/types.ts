@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          asset_id: string
+          asset_type: Database["public"]["Enums"]["asset_type"]
+          capacity: number | null
+          created_at: string | null
+          id: string
+          installation_date: string | null
+          location: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          asset_id: string
+          asset_type: Database["public"]["Enums"]["asset_type"]
+          capacity?: number | null
+          created_at?: string | null
+          id?: string
+          installation_date?: string | null
+          location?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          asset_id?: string
+          asset_type?: Database["public"]["Enums"]["asset_type"]
+          capacity?: number | null
+          created_at?: string | null
+          id?: string
+          installation_date?: string | null
+          location?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +58,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      asset_type: "wind" | "solar"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +185,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      asset_type: ["wind", "solar"],
+    },
   },
 } as const
