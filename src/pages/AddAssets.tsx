@@ -10,27 +10,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AssetType } from "@/types/sensor";
 import { useToast } from "@/hooks/use-toast";
 import { Wind, Zap, Sun } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+
+type AssetTypeOption = "wind" | "solar";
 
 const AddAssets = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     assetName: "",
-    assetType: "" as AssetType | "",
+    assetType: "" as AssetTypeOption | "",
     location: "",
     capacity: "",
     installDate: "",
   });
 
-  const assetIcons = {
-    "Wind Turbine": Wind,
-    "Solar Panel": Sun,
-    "Battery Storage": Zap,
+  const assetIcons: Record<string, typeof Wind> = {
+    wind: Wind,
+    solar: Sun,
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const assetLabels: Record<AssetTypeOption, string> = {
+    wind: "Wind Turbine",
+    solar: "Solar Panel",
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.assetName || !formData.assetType || !formData.location) {
@@ -42,19 +51,49 @@ const AddAssets = () => {
       return;
     }
 
-    toast({
-      title: "Asset Added Successfully",
-      description: `${formData.assetType} "${formData.assetName}" has been registered in the system.`,
-    });
+    setIsSubmitting(true);
 
-    // Reset form
-    setFormData({
-      assetName: "",
-      assetType: "",
-      location: "",
-      capacity: "",
-      installDate: "",
-    });
+    try {
+      // Generate asset ID
+      const assetId = `${formData.assetType === 'wind' ? 'WT' : 'SP'}_${Date.now()}`;
+
+      const { error } = await supabase.from("assets").insert({
+        asset_id: assetId,
+        name: formData.assetName,
+        asset_type: formData.assetType,
+        location: formData.location,
+        capacity: formData.capacity ? parseFloat(formData.capacity) : null,
+        installation_date: formData.installDate || null,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Asset Added Successfully",
+        description: `${assetLabels[formData.assetType]} "${formData.assetName}" has been registered in the system.`,
+      });
+
+      // Reset form
+      setFormData({
+        assetName: "",
+        assetType: "",
+        location: "",
+        capacity: "",
+        installDate: "",
+      });
+
+      // Navigate to assets page after 1 second
+      setTimeout(() => navigate("/assets"), 1000);
+    } catch (error: any) {
+      console.error("Error adding asset:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add asset. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -70,8 +109,8 @@ const AddAssets = () => {
         </div>
 
         {/* Asset Type Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(Object.keys(assetIcons) as AssetType[]).map((type) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(Object.keys(assetIcons) as AssetTypeOption[]).map((type) => {
             const Icon = assetIcons[type];
             const isSelected = formData.assetType === type;
             
@@ -93,7 +132,7 @@ const AddAssets = () => {
                   }`}>
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="font-semibold">{type}</h3>
+                  <h3 className="font-semibold">{assetLabels[type]}</h3>
                 </div>
               </Card>
             );
@@ -125,7 +164,7 @@ const AddAssets = () => {
                 </Label>
                 <Select
                   value={formData.assetType}
-                  onValueChange={(value: AssetType) =>
+                  onValueChange={(value: AssetTypeOption) =>
                     setFormData({ ...formData, assetType: value })
                   }
                 >
@@ -133,9 +172,8 @@ const AddAssets = () => {
                     <SelectValue placeholder="Select asset type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Wind Turbine">Wind Turbine</SelectItem>
-                    <SelectItem value="Solar Panel">Solar Panel</SelectItem>
-                    <SelectItem value="Battery Storage">Battery Storage</SelectItem>
+                    <SelectItem value="wind">Wind Turbine</SelectItem>
+                    <SelectItem value="solar">Solar Panel</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -201,8 +239,9 @@ const AddAssets = () => {
               <Button
                 type="submit"
                 className="bg-gradient-to-r from-primary to-chart-3 hover:opacity-90"
+                disabled={isSubmitting}
               >
-                Add Asset
+                {isSubmitting ? "Adding..." : "Add Asset"}
               </Button>
             </div>
           </form>

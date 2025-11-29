@@ -1,28 +1,77 @@
 import { useState, useEffect } from 'react';
-import { Wind, Sun, Activity, Zap, Thermometer, Droplets } from 'lucide-react';
+import { Wind, Sun, Activity, Zap, Thermometer, Droplets, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { generateSensorData } from '@/utils/sensorSimulator';
-import { SensorData, AssetType } from '@/types/sensor';
-
-const WIND_ASSETS = ['WT_1', 'WT_2', 'WT_3', 'WT_4', 'WT_5'];
-const SOLAR_ASSETS = ['SP_1', 'SP_2', 'SP_3', 'SP_4', 'SP_5'];
+import { SensorData } from '@/types/sensor';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Assets() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [windAssets, setWindAssets] = useState<string[]>([]);
+  const [solarAssets, setSolarAssets] = useState<string[]>([]);
   const [windData, setWindData] = useState<Record<string, SensorData>>({});
   const [solarData, setSolarData] = useState<Record<string, SensorData>>({});
+  const [loading, setLoading] = useState(true);
 
+  // Fetch assets from database
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('assets')
+          .select('asset_id, asset_type');
+
+        if (error) throw error;
+
+        const wind = data?.filter(a => a.asset_type === 'wind').map(a => a.asset_id) || [];
+        const solar = data?.filter(a => a.asset_type === 'solar').map(a => a.asset_id) || [];
+
+        setWindAssets(wind);
+        setSolarAssets(solar);
+      } catch (error: any) {
+        console.error('Error fetching assets:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load assets",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssets();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('assets-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, () => {
+        fetchAssets();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
+
+  // Generate sensor data for assets
   useEffect(() => {
     const updateData = () => {
       const newWindData: Record<string, SensorData> = {};
-      WIND_ASSETS.forEach(id => {
+      windAssets.forEach(id => {
         const data = generateSensorData('wind');
         newWindData[id] = { ...data, assetId: id };
       });
 
       const newSolarData: Record<string, SensorData> = {};
-      SOLAR_ASSETS.forEach(id => {
+      solarAssets.forEach(id => {
         const data = generateSensorData('solar');
         newSolarData[id] = { ...data, assetId: id };
       });
@@ -31,10 +80,12 @@ export default function Assets() {
       setSolarData(newSolarData);
     };
 
-    updateData();
-    const interval = setInterval(updateData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!loading && (windAssets.length > 0 || solarAssets.length > 0)) {
+      updateData();
+      const interval = setInterval(updateData, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [windAssets, solarAssets, loading]);
 
   const getStatusColor = (failureType: string, rulHours: number) => {
     if (failureType === 'normal' && rulHours > 200) return 'bg-success/20 text-success border-success/30';
@@ -152,11 +203,28 @@ export default function Assets() {
     </Card>
   );
 
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <p className="text-muted-foreground">Loading assets...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Asset Management</h1>
-        <p className="text-muted-foreground">Monitor all renewable energy assets and their real-time status</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Asset Management</h1>
+          <p className="text-muted-foreground">Monitor all renewable energy assets and their real-time status</p>
+        </div>
+        <Button 
+          onClick={() => navigate('/add-assets')}
+          className="bg-gradient-to-r from-primary to-chart-2"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Asset
+        </Button>
       </div>
 
       <Tabs defaultValue="wind" className="w-full">
@@ -172,19 +240,39 @@ export default function Assets() {
         </TabsList>
 
         <TabsContent value="wind" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {WIND_ASSETS.map(id => (
-              windData[id] && <AssetCard key={id} data={windData[id]} icon={Wind} />
-            ))}
-          </div>
+          {windAssets.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Wind className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground mb-4">No wind turbines added yet</p>
+              <Button onClick={() => navigate('/add-assets')} variant="outline">
+                Add Your First Wind Turbine
+              </Button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {windAssets.map(id => (
+                windData[id] && <AssetCard key={id} data={windData[id]} icon={Wind} />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="solar" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {SOLAR_ASSETS.map(id => (
-              solarData[id] && <AssetCard key={id} data={solarData[id]} icon={Sun} />
-            ))}
-          </div>
+          {solarAssets.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Sun className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground mb-4">No solar panels added yet</p>
+              <Button onClick={() => navigate('/add-assets')} variant="outline">
+                Add Your First Solar Panel
+              </Button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {solarAssets.map(id => (
+                solarData[id] && <AssetCard key={id} data={solarData[id]} icon={Sun} />
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
