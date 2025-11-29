@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Wind, Sun, Activity, Zap, Thermometer, Droplets, Plus } from 'lucide-react';
+import { Wind, Sun, Activity, Zap, Thermometer, Droplets, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { generateSensorData } from '@/utils/sensorSimulator';
 import { SensorData } from '@/types/sensor';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +28,11 @@ export default function Assets() {
   const [windData, setWindData] = useState<Record<string, SensorData>>({});
   const [solarData, setSolarData] = useState<Record<string, SensorData>>({});
   const [loading, setLoading] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; assetId: string; assetName: string }>({
+    open: false,
+    assetId: '',
+    assetName: '',
+  });
 
   // Fetch assets from database
   useEffect(() => {
@@ -101,6 +116,35 @@ export default function Assets() {
     return 'Warning';
   };
 
+  const handleDeleteClick = (assetId: string) => {
+    setDeleteDialog({ open: true, assetId, assetName: assetId });
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .delete()
+        .eq('asset_id', deleteDialog.assetId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Asset Deleted",
+        description: `${deleteDialog.assetName} has been removed from the system.`,
+      });
+
+      setDeleteDialog({ open: false, assetId: '', assetName: '' });
+    } catch (error: any) {
+      console.error('Error deleting asset:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete asset. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const AssetCard = ({ data, icon: Icon }: { data: SensorData; icon: any }) => (
     <Card className="hover:shadow-lg transition-all duration-300 border-border/50">
       <CardHeader className="pb-3">
@@ -109,9 +153,19 @@ export default function Assets() {
             <Icon className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">{data.assetId}</CardTitle>
           </div>
-          <Badge className={`${getStatusColor(data.failureType, data.rulHours)}`}>
-            {getStatusText(data.failureType, data.rulHours)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={`${getStatusColor(data.failureType, data.rulHours)}`}>
+              {getStatusText(data.failureType, data.rulHours)}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => handleDeleteClick(data.assetId)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -275,6 +329,27 @@ export default function Assets() {
           )}
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-semibold">{deleteDialog.assetName}</span>? 
+              This action cannot be undone and will remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
