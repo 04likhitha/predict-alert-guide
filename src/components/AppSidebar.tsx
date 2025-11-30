@@ -31,7 +31,7 @@ export function AppSidebar() {
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-chart-3 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">RE</span>
+              <span className="text-white font-bold text-sm">GT</span>
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">GreenTech</h2>
@@ -41,7 +41,7 @@ export function AppSidebar() {
         )}
         {isCollapsed && (
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-chart-3 flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-sm">RE</span>
+            <span className="text-white font-bold text-sm">GT</span>
           </div>
         )}
       </SidebarHeader>
