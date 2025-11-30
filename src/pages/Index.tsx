@@ -70,7 +70,7 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold glow-text mb-2">
-              Renewable Energy Monitoring
+              GreenTech Reliability Intelligence Platform
             </h1>
             <p className="text-muted-foreground">
               Real-time predictive maintenance dashboard

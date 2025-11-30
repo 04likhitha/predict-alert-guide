@@ -34,8 +34,8 @@ export function AppSidebar() {
               <span className="text-white font-bold text-sm">RE</span>
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Renewable Energy</h2>
-              <p className="text-xs text-muted-foreground">Predictive Maintenance</p>
+              <h2 className="text-sm font-semibold text-foreground">GreenTech</h2>
+              <p className="text-xs text-muted-foreground">Reliability Intelligence Platform</p>
             </div>
           </div>
         )}

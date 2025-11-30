@@ -270,7 +270,7 @@ export default function Assets() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">Asset Management</h1>
-          <p className="text-muted-foreground">Monitor all renewable energy assets and their real-time status</p>
+          <p className="text-muted-foreground">Monitor all assets and their real-time status with GreenTech Reliability Intelligence Platform</p>
         </div>
         <Button 
           onClick={() => navigate('/add-assets')}

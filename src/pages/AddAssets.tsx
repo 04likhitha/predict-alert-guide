@@ -104,7 +104,7 @@ const AddAssets = () => {
             Add New Asset
           </h1>
           <p className="text-muted-foreground mt-2">
-            Register new renewable energy assets for monitoring
+            Register new assets for GreenTech Reliability Intelligence Platform monitoring
           </p>
         </div>
 
