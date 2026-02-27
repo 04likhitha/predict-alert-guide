@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_predictions: {
+        Row: {
+          asset_id: string
+          confidence: number | null
+          created_at: string
+          id: string
+          model_used: string | null
+          prediction_type: string
+          result: Json
+        }
+        Insert: {
+          asset_id: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          prediction_type: string
+          result: Json
+        }
+        Update: {
+          asset_id?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          prediction_type?: string
+          result?: Json
+        }
+        Relationships: []
+      }
+      alerts_history: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_by: string | null
+          asset_id: string
+          created_at: string
+          failure_type: string | null
+          id: string
+          message: string
+          resolved: boolean
+          resolved_at: string | null
+          rul_hours: number | null
+          severity: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_by?: string | null
+          asset_id: string
+          created_at?: string
+          failure_type?: string | null
+          id?: string
+          message: string
+          resolved?: boolean
+          resolved_at?: string | null
+          rul_hours?: number | null
+          severity: string
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_by?: string | null
+          asset_id?: string
+          created_at?: string
+          failure_type?: string | null
+          id?: string
+          message?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          rul_hours?: number | null
+          severity?: string
+        }
+        Relationships: []
+      }
       assets: {
         Row: {
           asset_id: string
@@ -50,6 +152,66 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_tasks: {
+        Row: {
+          actual_cost: number | null
+          actual_hours: number | null
+          asset_id: string
+          assigned_to: string | null
+          completed_date: string | null
+          cost_estimate: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          notes: string | null
+          priority: string
+          scheduled_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          actual_hours?: number | null
+          asset_id: string
+          assigned_to?: string | null
+          completed_date?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          scheduled_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          actual_hours?: number | null
+          asset_id?: string
+          assigned_to?: string | null
+          completed_date?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          scheduled_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -80,14 +242,183 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          created_at: string
+          file_url: string | null
+          generated_by: string | null
+          id: string
+          parameters: Json | null
+          report_type: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          parameters?: Json | null
+          report_type: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          parameters?: Json | null
+          report_type?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      sensor_readings: {
+        Row: {
+          ambient_temp: number
+          asset_id: string
+          asset_type: string
+          confidence: number
+          created_at: string
+          failure_type: string
+          gearbox_temp: number | null
+          humidity: number
+          id: string
+          irradiance: number | null
+          module_temp: number | null
+          panel_current: number | null
+          panel_voltage: number | null
+          power_output: number
+          rotor_speed: number | null
+          rul_hours: number
+          timestamp: string
+          wind_speed: number | null
+        }
+        Insert: {
+          ambient_temp: number
+          asset_id: string
+          asset_type: string
+          confidence?: number
+          created_at?: string
+          failure_type?: string
+          gearbox_temp?: number | null
+          humidity: number
+          id?: string
+          irradiance?: number | null
+          module_temp?: number | null
+          panel_current?: number | null
+          panel_voltage?: number | null
+          power_output: number
+          rotor_speed?: number | null
+          rul_hours?: number
+          timestamp?: string
+          wind_speed?: number | null
+        }
+        Update: {
+          ambient_temp?: number
+          asset_id?: string
+          asset_type?: string
+          confidence?: number
+          created_at?: string
+          failure_type?: string
+          gearbox_temp?: number | null
+          humidity?: number
+          id?: string
+          irradiance?: number | null
+          module_temp?: number | null
+          panel_current?: number | null
+          panel_voltage?: number | null
+          power_output?: number
+          rotor_speed?: number | null
+          rul_hours?: number
+          timestamp?: string
+          wind_speed?: number | null
+        }
+        Relationships: []
+      }
+      spare_parts: {
+        Row: {
+          category: string
+          compatible_asset_type: string
+          created_at: string
+          id: string
+          lead_time_days: number | null
+          name: string
+          part_number: string
+          quantity_in_stock: number
+          reorder_level: number
+          supplier: string | null
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          compatible_asset_type: string
+          created_at?: string
+          id?: string
+          lead_time_days?: number | null
+          name: string
+          part_number: string
+          quantity_in_stock?: number
+          reorder_level?: number
+          supplier?: string | null
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          compatible_asset_type?: string
+          created_at?: string
+          id?: string
+          lead_time_days?: number | null
+          name?: string
+          part_number?: string
+          quantity_in_stock?: number
+          reorder_level?: number
+          supplier?: string | null
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "operator" | "technician"
       asset_type: "wind" | "solar"
     }
     CompositeTypes: {
@@ -216,6 +547,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "operator", "technician"],
       asset_type: ["wind", "solar"],
     },
   },
