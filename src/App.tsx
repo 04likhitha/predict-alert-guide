@@ -15,6 +15,19 @@ import AddAssets from "./pages/AddAssets";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import AssetHealth from "./pages/AssetHealth";
+import RealTimeMonitoring from "./pages/RealTimeMonitoring";
+import PredictiveAnalytics from "./pages/PredictiveAnalytics";
+import MaintenancePlanner from "./pages/MaintenancePlanner";
+import SparePartsForecasting from "./pages/SparePartsForecasting";
+import FinancialAnalytics from "./pages/FinancialAnalytics";
+import EnergyProduction from "./pages/EnergyProduction";
+import Sustainability from "./pages/Sustainability";
+import AlertsCenter from "./pages/AlertsCenter";
+import HistoricalTrends from "./pages/HistoricalTrends";
+import ReportsCenter from "./pages/ReportsCenter";
+import ActivityLogs from "./pages/ActivityLogs";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +52,7 @@ const App = () => (
                           <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
                             <SidebarTrigger />
                             <div className="flex items-center gap-2">
-                              <h1 className="text-lg font-semibold">Predictive Maintenance System</h1>
+                              <h1 className="text-lg font-semibold">GreenTech Reliability Intelligence Platform</h1>
                             </div>
                           </header>
                           <Routes>
@@ -48,6 +61,19 @@ const App = () => (
                             <Route path="/alerts" element={<Alerts />} />
                             <Route path="/add-assets" element={<AddAssets />} />
                             <Route path="/settings" element={<Settings />} />
+                            <Route path="/asset-health" element={<AssetHealth />} />
+                            <Route path="/monitoring" element={<RealTimeMonitoring />} />
+                            <Route path="/predictive-analytics" element={<PredictiveAnalytics />} />
+                            <Route path="/maintenance-planner" element={<MaintenancePlanner />} />
+                            <Route path="/spare-parts" element={<SparePartsForecasting />} />
+                            <Route path="/financial-analytics" element={<FinancialAnalytics />} />
+                            <Route path="/energy-production" element={<EnergyProduction />} />
+                            <Route path="/sustainability" element={<Sustainability />} />
+                            <Route path="/alerts-center" element={<AlertsCenter />} />
+                            <Route path="/historical-trends" element={<HistoricalTrends />} />
+                            <Route path="/reports" element={<ReportsCenter />} />
+                            <Route path="/activity-logs" element={<ActivityLogs />} />
+                            <Route path="/admin" element={<AdminPanel />} />
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
                           </Routes>
