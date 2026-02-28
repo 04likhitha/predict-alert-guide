@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { SensorData, Recommendation } from '@/types/sensor';
 import { Activity, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface PredictionPanelProps {
   data: SensorData;
@@ -25,109 +26,85 @@ export function PredictionPanel({ data, recommendation }: PredictionPanelProps) 
     return labels[type] || type;
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'text-destructive';
-      case 'medium':
-        return 'text-warning';
-      default:
-        return 'text-success';
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Prediction Status */}
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.3 }}
+      className="space-y-4"
+    >
       <Card className={cn(
-        'card-glow p-6 border-2 transition-all duration-300',
-        isHealthy ? 'border-success/50 bg-success/5' : 'border-destructive/50 bg-destructive/5'
+        'p-5 border bg-card transition-all duration-300',
+        isHealthy ? 'border-success/20' : 'border-destructive/20'
       )}>
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {isHealthy ? (
-              <CheckCircle2 className="w-8 h-8 text-success" />
+              <div className="p-2 rounded-xl bg-success/10">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              </div>
             ) : (
-              <AlertTriangle className="w-8 h-8 text-destructive" />
+              <div className="p-2 rounded-xl bg-destructive/10">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
             )}
             <div>
-              <h3 className="text-lg font-semibold">Prediction Status</h3>
-              <p className="text-sm text-muted-foreground">ML Model Inference</p>
+              <h3 className="text-sm font-semibold">Prediction Status</h3>
+              <p className="text-[11px] text-muted-foreground">AI Model Inference</p>
             </div>
           </div>
-          <Badge variant={isHealthy ? 'default' : 'destructive'} className="text-xs">
-            {(data.confidence * 100).toFixed(1)}% Confidence
+          <Badge variant={isHealthy ? 'default' : 'destructive'} className="text-[10px] h-5">
+            {(data.confidence * 100).toFixed(1)}%
           </Badge>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Failure Type</span>
-              <span className={cn('text-sm font-bold', isHealthy ? 'text-success' : 'text-destructive')}>
-                {getFailureLabel(data.failureType)}
-              </span>
-            </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Failure Type</span>
+            <span className={cn('text-xs font-semibold', isHealthy ? 'text-success' : 'text-destructive')}>
+              {getFailureLabel(data.failureType)}
+            </span>
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Remaining Useful Life (RUL)
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Clock className="w-3 h-3" /> RUL
               </span>
-              <span className="text-sm font-bold">{Math.round(data.rulHours)}h</span>
+              <span className="text-xs font-semibold">{Math.round(data.rulHours)}h</span>
             </div>
-            <Progress 
-              value={rulPercentage} 
-              className={cn(
-                'h-2',
-                data.rulHours < 50 && 'bg-destructive/20',
-                data.rulHours >= 50 && data.rulHours < 150 && 'bg-warning/20'
-              )}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
+            <Progress value={rulPercentage} className="h-1.5" />
+            <p className="text-[10px] text-muted-foreground mt-1">
               {data.rulHours < 50 && 'Critical: Immediate action required'}
               {data.rulHours >= 50 && data.rulHours < 150 && 'Warning: Schedule maintenance soon'}
-              {data.rulHours >= 150 && 'Good: Within normal operating range'}
+              {data.rulHours >= 150 && 'Good: Normal operating range'}
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Recommendations */}
-      <Card className="card-glow p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Activity className="w-6 h-6 text-primary" />
+      <Card className="p-5 bg-card border border-border/50">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <Activity className="w-5 h-5 text-primary" />
+          </div>
           <div>
-            <h3 className="text-lg font-semibold">Diagnosis & Solution</h3>
-            <p className="text-sm text-muted-foreground">AI-Powered Recommendations</p>
+            <h3 className="text-sm font-semibold">AI Recommendation</h3>
+            <p className="text-[11px] text-muted-foreground">Diagnosis & Solution</p>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">Problem Analysis</span>
-              <Badge className={getPriorityColor(recommendation.priority)}>
-                {recommendation.priority.toUpperCase()} Priority
-              </Badge>
-            </div>
-            <p className="text-sm leading-relaxed bg-muted/30 p-3 rounded-lg">
-              {recommendation.problem}
-            </p>
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Problem</span>
+            <p className="text-xs mt-1 p-2.5 rounded-lg bg-muted/50 leading-relaxed">{recommendation.problem}</p>
           </div>
-
           <div>
-            <span className="text-sm font-medium text-muted-foreground block mb-2">
-              Recommended Actions
-            </span>
-            <p className="text-sm leading-relaxed bg-primary/10 p-3 rounded-lg border border-primary/20">
-              {recommendation.solution}
-            </p>
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Action</span>
+            <p className="text-xs mt-1 p-2.5 rounded-lg bg-primary/5 border border-primary/10 leading-relaxed">{recommendation.solution}</p>
           </div>
         </div>
       </Card>
-    </div>
+    </motion.div>
   );
 }
