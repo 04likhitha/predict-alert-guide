@@ -1,7 +1,7 @@
 import {
-  LayoutDashboard, AlertTriangle, PlusCircle, Database, Settings,
-  Heart, Radio, Brain, Wrench, Package, DollarSign, Zap, Leaf,
-  Bell, TrendingUp, FileText, ClipboardList, Shield
+  LayoutDashboard, Heart, Radio, Database, Brain, TrendingUp, Zap, DollarSign, Leaf,
+  Wrench, Package, Bell, FileText, ClipboardList, Shield, Settings, HardDrive,
+  Search, Info, LogOut
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -9,106 +9,134 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { useUserRole } from "@/hooks/useUserRole";
-import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
-const mainItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Asset Health", url: "/asset-health", icon: Heart },
-  { title: "Real-Time Monitoring", url: "/monitoring", icon: Radio },
-  { title: "Assets", url: "/assets", icon: Database },
-];
-
-const analyticsItems = [
-  { title: "Predictive Analytics", url: "/predictive-analytics", icon: Brain },
-  { title: "Historical Trends", url: "/historical-trends", icon: TrendingUp },
-  { title: "Energy Production", url: "/energy-production", icon: Zap },
-  { title: "Financial Analytics", url: "/financial-analytics", icon: DollarSign },
-  { title: "Sustainability", url: "/sustainability", icon: Leaf },
-];
-
-const operationsItems = [
-  { title: "Maintenance Planner", url: "/maintenance-planner", icon: Wrench },
-  { title: "Spare Parts", url: "/spare-parts", icon: Package },
-  { title: "Alerts Center", url: "/alerts-center", icon: Bell },
-  { title: "Alerts (Legacy)", url: "/alerts", icon: AlertTriangle },
-  { title: "Add Assets", url: "/add-assets", icon: PlusCircle },
-];
-
-const systemItems = [
-  { title: "Reports Center", url: "/reports", icon: FileText },
-  { title: "Activity Logs", url: "/activity-logs", icon: ClipboardList },
-  { title: "Admin Panel", url: "/admin", icon: Shield },
-  { title: "Settings", url: "/settings", icon: Settings },
+const sections = [
+  {
+    label: "Overview",
+    items: [
+      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Asset Health", url: "/asset-health", icon: Heart },
+      { title: "Real-Time Monitor", url: "/monitoring", icon: Radio },
+      { title: "Assets", url: "/assets", icon: Database },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
+      { title: "Predictive Analytics", url: "/predictive-analytics", icon: Brain },
+      { title: "Historical Trends", url: "/historical-trends", icon: TrendingUp },
+      { title: "Energy Production", url: "/energy-production", icon: Zap },
+      { title: "Financial Analytics", url: "/financial-analytics", icon: DollarSign },
+      { title: "Sustainability", url: "/sustainability", icon: Leaf },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { title: "Maintenance Planner", url: "/maintenance-planner", icon: Wrench },
+      { title: "Spare Parts", url: "/spare-parts", icon: Package },
+      { title: "Alerts Center", url: "/alerts-center", icon: Bell },
+    ],
+  },
+  {
+    label: "Data & Reports",
+    items: [
+      { title: "Dataset Manager", url: "/dataset-manager", icon: HardDrive },
+      { title: "Datasets Explorer", url: "/datasets-explorer", icon: Search },
+      { title: "Reports Center", url: "/reports", icon: FileText },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { title: "Activity Logs", url: "/activity-logs", icon: ClipboardList },
+      { title: "Admin Panel", url: "/admin", icon: Shield },
+      { title: "Know More", url: "/know-more", icon: Info },
+      { title: "Settings", url: "/settings", icon: Settings },
+    ],
+  },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const { isAdmin } = useUserRole();
-
-  const renderGroup = (label: string, items: typeof mainItems) => (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={isCollapsed ? item.title : undefined}>
-                <NavLink
-                  to={item.url}
-                  end={item.url === '/'}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 ${isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-accent/50"}`
-                  }
-                >
-                  <item.icon className="h-4 w-4" />
-                  {!isCollapsed && <span>{item.title}</span>}
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
+  const { signOut } = useAuth();
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/50">
-      <SidebarHeader className="border-b border-border/50 p-4">
-        {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-chart-3 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">GT</span>
+    <Sidebar collapsible="icon" className="border-r-0">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
+        {!isCollapsed ? (
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald to-primary flex items-center justify-center shadow-lg shadow-emerald/20">
+              <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">GreenTech</h2>
-              <p className="text-xs text-muted-foreground">Reliability Intelligence</p>
+              <h2 className="text-sm font-bold tracking-tight">GreenTech</h2>
+              <p className="text-[11px] text-sidebar-foreground/50">Reliability Intelligence</p>
             </div>
           </div>
-        )}
-        {isCollapsed && (
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-chart-3 flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-sm">GT</span>
+        ) : (
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald to-primary flex items-center justify-center mx-auto shadow-lg shadow-emerald/20">
+            <Zap className="h-5 w-5 text-primary-foreground" />
           </div>
         )}
       </SidebarHeader>
 
-      <SidebarContent>
-        {renderGroup("Overview", mainItems)}
-        {renderGroup("Analytics", analyticsItems)}
-        {renderGroup("Operations", operationsItems)}
-        {renderGroup("System", systemItems)}
+      <SidebarContent className="px-2 py-2">
+        {sections.map((section) => (
+          <SidebarGroup key={section.label} className="mb-1">
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40 px-3 mb-1">
+              {section.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild tooltip={isCollapsed ? item.title : undefined} className="h-9">
+                      <NavLink
+                        to={item.url}
+                        end={item.url === '/'}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-3 px-3 rounded-lg text-[13px] font-medium transition-all duration-200",
+                            isActive
+                              ? "bg-sidebar-accent/15 text-sidebar-accent shadow-sm"
+                              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted/50"
+                          )
+                        }
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
-      {!isCollapsed && (
-        <SidebarFooter className="border-t border-border/50 p-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="text-[10px]">v2.0</Badge>
-            <span>GreenTech GRIP</span>
-          </div>
-        </SidebarFooter>
-      )}
+      <SidebarFooter className="border-t border-sidebar-border p-3">
+        {!isCollapsed ? (
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-muted/50 transition-all w-full"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => signOut()}
+            className="flex items-center justify-center p-2 rounded-lg text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-muted/50 transition-all mx-auto"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }
