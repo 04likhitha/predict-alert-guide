@@ -14,15 +14,15 @@ export default function HistoricalTrends() {
   const chartData = rows.map((r: any) => ({
     time: new Date(r.timestamp).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
     power: r.power_output,
-    temp: r.ambient_temp,
+    temp: r.ambient_temperature,
     humidity: r.humidity,
-    rul: r.rul_hours,
-    confidence: r.confidence * 100,
+    rul: r.remaining_useful_life_hours,
+    confidence: r.confidence_score * 100,
   }));
 
   const avgPower = rows.length > 0 ? rows.reduce((a: number, r: any) => a + r.power_output, 0) / rows.length : 0;
-  const avgConf = rows.length > 0 ? rows.reduce((a: number, r: any) => a + r.confidence, 0) / rows.length * 100 : 0;
-  const avgRul = rows.length > 0 ? rows.reduce((a: number, r: any) => a + r.rul_hours, 0) / rows.length : 0;
+  const avgConf = rows.length > 0 ? rows.reduce((a: number, r: any) => a + r.confidence_score, 0) / rows.length * 100 : 0;
+  const avgRul = rows.length > 0 ? rows.reduce((a: number, r: any) => a + r.remaining_useful_life_hours, 0) / rows.length : 0;
 
   return (
     <div className="p-6 space-y-6">

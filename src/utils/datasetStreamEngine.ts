@@ -43,22 +43,33 @@ function getNextIndex(assetId: string, totalRows: number): number {
   return idx;
 }
 
+// ── Normalize failure type string to FailureType enum ──
+function normalizeFailureType(ft: string): FailureType {
+  const lower = ft.toLowerCase().trim();
+  if (lower === 'normal' || lower === 'no failure') return 'normal';
+  if (lower.includes('inverter')) return 'inverter_failure';
+  if (lower.includes('gearbox')) return 'gearbox_failure';
+  if (lower.includes('hotspot') || lower.includes('panel')) return 'panel_hotspot';
+  if (lower.includes('generator')) return 'generator_failure';
+  return 'normal';
+}
+
 // ── Convert a dataset row to SensorData ──
 function solarRowToSensorData(row: SolarDataRow): SensorData {
   return {
     timestamp: new Date(),
     assetType: 'solar',
     assetId: row.asset_id,
-    panelVoltage: row.panel_voltage,
-    panelCurrent: row.panel_current,
-    moduleTemp: row.module_temp,
+    panelVoltage: row.voltage,
+    panelCurrent: row.current,
+    moduleTemp: row.panel_temperature,
     irradiance: row.irradiance,
     powerOutput: row.power_output,
-    ambientTemp: row.ambient_temp,
+    ambientTemp: row.ambient_temperature,
     humidity: row.humidity,
-    failureType: row.failure_type as FailureType,
-    rulHours: row.rul_hours,
-    confidence: row.confidence,
+    failureType: normalizeFailureType(row.failure_type),
+    rulHours: row.remaining_useful_life_hours,
+    confidence: row.confidence_score,
   };
 }
 
@@ -69,13 +80,13 @@ function windRowToSensorData(row: WindDataRow): SensorData {
     assetId: row.asset_id,
     windSpeed: row.wind_speed,
     rotorSpeed: row.rotor_speed,
-    gearboxTemp: row.gearbox_temp,
+    gearboxTemp: row.gearbox_temperature,
     powerOutput: row.power_output,
-    ambientTemp: row.ambient_temp,
+    ambientTemp: row.ambient_temperature,
     humidity: row.humidity,
-    failureType: row.failure_type as FailureType,
-    rulHours: row.rul_hours,
-    confidence: row.confidence,
+    failureType: normalizeFailureType(row.failure_type),
+    rulHours: row.remaining_useful_life_hours,
+    confidence: row.confidence_score,
   };
 }
 
