@@ -10,9 +10,22 @@ import {
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
-const sections = [
+interface NavItem {
+  title: string;
+  url: string;
+  icon: any;
+  adminOnly?: boolean;
+}
+
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const sections: NavSection[] = [
   {
     label: "Overview",
     items: [
@@ -52,7 +65,7 @@ const sections = [
     label: "System",
     items: [
       { title: "Activity Logs", url: "/activity-logs", icon: ClipboardList },
-      { title: "Admin Panel", url: "/admin", icon: Shield },
+      { title: "Admin Panel", url: "/admin", icon: Shield, adminOnly: true },
       { title: "Know More", url: "/know-more", icon: Info },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
@@ -63,6 +76,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const { signOut } = useAuth();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -85,38 +99,44 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-2">
-        {sections.map((section) => (
-          <SidebarGroup key={section.label} className="mb-1">
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40 px-3 mb-1">
-              {section.label}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {section.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild tooltip={isCollapsed ? item.title : undefined} className="h-9">
-                      <NavLink
-                        to={item.url}
-                        end={item.url === '/'}
-                        className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-3 px-3 rounded-lg text-[13px] font-medium transition-all duration-200",
-                            isActive
-                              ? "bg-sidebar-accent/15 text-sidebar-accent shadow-sm"
-                              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted/50"
-                          )
-                        }
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!isCollapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {sections.map((section) => {
+          const visibleItems = section.items.filter(
+            (item) => !item.adminOnly || (!roleLoading && isAdmin)
+          );
+          if (visibleItems.length === 0) return null;
+          return (
+            <SidebarGroup key={section.label} className="mb-1">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-sidebar-foreground/40 px-3 mb-1">
+                {section.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {visibleItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild tooltip={isCollapsed ? item.title : undefined} className="h-9">
+                        <NavLink
+                          to={item.url}
+                          end={item.url === '/'}
+                          className={({ isActive }) =>
+                            cn(
+                              "flex items-center gap-3 px-3 rounded-lg text-[13px] font-medium transition-all duration-200",
+                              isActive
+                                ? "bg-sidebar-accent/15 text-sidebar-accent shadow-sm"
+                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted/50"
+                            )
+                          }
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {!isCollapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
