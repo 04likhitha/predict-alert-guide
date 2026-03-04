@@ -6,17 +6,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const VALID_TYPES = ["failure_prediction", "rul_prediction", "anomaly_detection", "maintenance_recommendation"];
+const ASSET_ID_PATTERN = /^[A-Za-z0-9_-]{1,50}$/;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Verify JWT authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { type, sensorData, assetId } = await req.json();
+
+    // Validate inputs
+    if (!type || !VALID_TYPES.includes(type)) {
+      return new Response(JSON.stringify({ error: "Invalid prediction type" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!assetId || typeof assetId !== "string" || !ASSET_ID_PATTERN.test(assetId)) {
+      return new Response(JSON.stringify({ error: "Invalid assetId" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!sensorData || typeof sensorData !== "object" || Array.isArray(sensorData)) {
+      return new Response(JSON.stringify({ error: "Invalid sensorData" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use service role for DB writes only
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     let systemPrompt = "";
     let userPrompt = "";
@@ -33,8 +82,6 @@ serve(async (req) => {
     } else if (type === "maintenance_recommendation") {
       systemPrompt = `You are a maintenance planning AI. Generate actionable maintenance recommendations based on asset condition and predictions.`;
       userPrompt = `Generate maintenance recommendations for asset ${assetId}:\n${JSON.stringify(sensorData, null, 2)}\n\nReturn JSON with: urgency (low/medium/high/critical), tasks (array of {title, description, estimated_hours, required_parts, priority}), estimated_downtime_hours (number), cost_estimate (number), risk_if_delayed (string).`;
-    } else {
-      throw new Error(`Unknown prediction type: ${type}`);
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -66,8 +113,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
       throw new Error("AI gateway error");
     }
 
@@ -94,8 +139,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("ai-predict error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
