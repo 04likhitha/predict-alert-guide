@@ -12,12 +12,13 @@ import { Shield, Users, Brain, Settings2, Database } from 'lucide-react';
 
 export default function AdminPanel() {
   const { user } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [stats, setStats] = useState({ assets: 0, readings: 0, alerts: 0, tasks: 0 });
 
   useEffect(() => {
+    if (roleLoading || !isAdmin) return;
     const fetchAll = async () => {
       const [{ data: p }, { data: pred }, { count: assetCount }, { count: readingCount }, { count: alertCount }, { count: taskCount }] = await Promise.all([
         supabase.from('profiles').select('*'),
@@ -32,7 +33,21 @@ export default function AdminPanel() {
       setStats({ assets: assetCount || 0, readings: readingCount || 0, alerts: alertCount || 0, tasks: taskCount || 0 });
     };
     fetchAll();
-  }, []);
+  }, [isAdmin, roleLoading]);
+
+  if (roleLoading) {
+    return <div className="p-6 text-center text-muted-foreground">Loading...</div>;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6 text-center">
+        <Shield className="h-12 w-12 text-destructive mx-auto mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+        <p className="text-muted-foreground">You need admin privileges to access this panel.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
