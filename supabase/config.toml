@@ -1,1 +1,7 @@
 project_id = "qloxodhoogydvryktafl"
+
+[functions.ai-predict]
+verify_jwt = false
+
+[functions.seed-admin]
+verify_jwt = false
