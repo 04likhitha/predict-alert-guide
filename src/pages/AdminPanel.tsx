@@ -1,130 +1,55 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
-import { Shield, Users, Brain, Database, RefreshCw, Upload, CheckCircle2, AlertTriangle, Loader2, Info } from 'lucide-react';
-import { allAssets } from '@/utils/datasetStreamEngine';
+import { Shield, Users, Brain, Settings2, Database } from 'lucide-react';
 
 export default function AdminPanel() {
+  const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [stats, setStats] = useState({ assets: 0, readings: 0, alerts: 0, tasks: 0 });
-  const [syncing, setSyncing] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAll = useCallback(async () => {
-    setRefreshing(true);
-    const [{ data: p }, { data: pred }, { count: assetCount }, { count: readingCount }, { count: alertCount }, { count: taskCount }] = await Promise.all([
-      supabase.from('profiles').select('*'),
-      supabase.from('ai_predictions').select('*').order('created_at', { ascending: false }).limit(20),
-      supabase.from('assets').select('*', { count: 'exact', head: true }),
-      supabase.from('sensor_readings').select('*', { count: 'exact', head: true }),
-      supabase.from('alerts_history').select('*', { count: 'exact', head: true }),
-      supabase.from('maintenance_tasks').select('*', { count: 'exact', head: true }),
-    ]);
-    if (p) setProfiles(p);
-    if (pred) setPredictions(pred);
-    setStats({ assets: assetCount || 0, readings: readingCount || 0, alerts: alertCount || 0, tasks: taskCount || 0 });
-    setRefreshing(false);
+  useEffect(() => {
+    const fetchAll = async () => {
+      const [{ data: p }, { data: pred }, { count: assetCount }, { count: readingCount }, { count: alertCount }, { count: taskCount }] = await Promise.all([
+        supabase.from('profiles').select('*'),
+        supabase.from('ai_predictions').select('*').order('created_at', { ascending: false }).limit(20),
+        supabase.from('assets').select('*', { count: 'exact', head: true }),
+        supabase.from('sensor_readings').select('*', { count: 'exact', head: true }),
+        supabase.from('alerts_history').select('*', { count: 'exact', head: true }),
+        supabase.from('maintenance_tasks').select('*', { count: 'exact', head: true }),
+      ]);
+      if (p) setProfiles(p);
+      if (pred) setPredictions(pred);
+      setStats({ assets: assetCount || 0, readings: readingCount || 0, alerts: alertCount || 0, tasks: taskCount || 0 });
+    };
+    fetchAll();
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-
-  const syncAssets = async () => {
-    setSyncing(true);
-    try {
-      for (const asset of allAssets) {
-        const { error } = await supabase.from('assets').upsert({
-          asset_id: asset.id,
-          name: asset.name,
-          asset_type: asset.type as 'wind' | 'solar',
-          capacity: asset.capacity_mw,
-          location: asset.location,
-          installation_date: asset.installation_date,
-        }, { onConflict: 'asset_id' });
-        if (error) console.error('Asset sync error:', error.message);
-      }
-      toast.success(`Synced ${allAssets.length} assets from master datasets`);
-      await fetchAll();
-    } catch (err: any) {
-      toast.error(err.message || 'Sync failed');
-    }
-    setSyncing(false);
-  };
-
-  const statCards = [
-    { label: 'Assets (DB)', value: stats.assets, expected: allAssets.length, color: 'text-primary', icon: Database },
-    { label: 'Sensor Readings', value: stats.readings, color: 'text-chart-2', icon: Database },
-    { label: 'Alerts', value: stats.alerts, color: 'text-warning', icon: Database },
-    { label: 'Tasks', value: stats.tasks, color: 'text-success', icon: Database },
-  ];
-
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold glow-text flex items-center gap-3">
-            <Shield className="h-8 w-8 text-primary" /> Admin Panel
-          </h1>
-          <p className="text-muted-foreground mt-1">System administration — sync assets, monitor data, AI predictions</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchAll} disabled={refreshing} className="gap-2">
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold glow-text flex items-center gap-3">
+          <Shield className="h-8 w-8 text-primary" /> Admin Panel
+        </h1>
+        <p className="text-muted-foreground mt-1">System administration, user management & AI model monitoring</p>
       </div>
 
       {/* System Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {statCards.map(s => (
-          <Card key={s.label} className="p-4">
-            <div className="flex items-center gap-3">
-              <s.icon className={`h-6 w-6 ${s.color}`} />
-              <div>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-                <p className="text-xl font-bold">{s.value.toLocaleString()}</p>
-                {s.expected !== undefined && (
-                  <p className="text-[10px] text-muted-foreground">
-                    Expected: {s.expected} {s.value === s.expected ? <CheckCircle2 className="inline h-3 w-3 text-success" /> : <AlertTriangle className="inline h-3 w-3 text-warning" />}
-                  </p>
-                )}
-              </div>
-            </div>
-          </Card>
-        ))}
+        <Card className="p-4"><div className="flex items-center gap-3"><Database className="h-6 w-6 text-primary" /><div><p className="text-xs text-muted-foreground">Assets</p><p className="text-xl font-bold">{stats.assets}</p></div></div></Card>
+        <Card className="p-4"><div className="flex items-center gap-3"><Database className="h-6 w-6 text-chart-2" /><div><p className="text-xs text-muted-foreground">Sensor Readings</p><p className="text-xl font-bold">{stats.readings.toLocaleString()}</p></div></div></Card>
+        <Card className="p-4"><div className="flex items-center gap-3"><Database className="h-6 w-6 text-warning" /><div><p className="text-xs text-muted-foreground">Alerts</p><p className="text-xl font-bold">{stats.alerts}</p></div></div></Card>
+        <Card className="p-4"><div className="flex items-center gap-3"><Database className="h-6 w-6 text-success" /><div><p className="text-xs text-muted-foreground">Tasks</p><p className="text-xl font-bold">{stats.tasks}</p></div></div></Card>
       </div>
-
-      {/* System Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> System Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={syncAssets} disabled={syncing} className="gap-2">
-              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Sync Dataset Assets to DB ({allAssets.length} assets)
-            </Button>
-          </div>
-
-          <div className="border-t border-border pt-4">
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-              <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">System Data Policy — Fresh Start Active</p>
-                <p>Old alerts, predictions, sensor readings, and tasks have been cleared. New data is being saved from this point onwards.</p>
-                <p>• <strong>Sensor readings</strong> persist automatically when viewing Real-Time Monitoring.</p>
-                <p>• <strong>Alerts</strong> are generated from dataset loop and saved to DB every 3 seconds.</p>
-                <p>• <strong>Tasks</strong> are created manually via the Maintenance Planner using dataset asset IDs.</p>
-                <p>• <strong>AI Predictions</strong> are saved when running predictions on the Predictive Analytics page.</p>
-                <p>• All modules use the Solar & Wind Master Datasets exclusively — {allAssets.length} assets ({allAssets.filter(a => a.type === 'solar').length} solar, {allAssets.filter(a => a.type === 'wind').length} wind).</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* User Management */}
       <Card>
@@ -180,7 +105,7 @@ export default function AdminPanel() {
                 </TableRow>
               ))}
               {predictions.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">No predictions yet — run predictions from Predictive Analytics</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">No predictions yet</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
