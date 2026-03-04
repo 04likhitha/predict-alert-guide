@@ -4,18 +4,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, Users, Brain, Database, RefreshCw, Trash2, Upload, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Shield, Users, Brain, Database, RefreshCw, Upload, CheckCircle2, AlertTriangle, Loader2, Info } from 'lucide-react';
 import { allAssets } from '@/utils/datasetStreamEngine';
 
 export default function AdminPanel() {
-  const { user } = useAuth();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [stats, setStats] = useState({ assets: 0, readings: 0, alerts: 0, tasks: 0 });
   const [syncing, setSyncing] = useState(false);
-  const [clearing, setClearing] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -36,15 +33,9 @@ export default function AdminPanel() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Sync all 10 dataset assets into the assets DB table
   const syncAssets = async () => {
     setSyncing(true);
     try {
-      // Delete old assets not in current dataset
-      const currentIds = allAssets.map(a => a.id);
-      await supabase.from('assets').delete().not('asset_id', 'in', `(${currentIds.join(',')})`);
-
-      // Upsert all dataset assets
       for (const asset of allAssets) {
         const { error } = await supabase.from('assets').upsert({
           asset_id: asset.id,
@@ -64,21 +55,6 @@ export default function AdminPanel() {
     setSyncing(false);
   };
 
-  // Clear old data from a table
-  const clearTable = async (table: 'sensor_readings' | 'alerts_history' | 'maintenance_tasks' | 'ai_predictions') => {
-    setClearing(table);
-    try {
-      // Delete all rows - use a condition that matches everything
-      const { error } = await supabase.from(table).delete().gte('created_at', '1970-01-01');
-      if (error) throw error;
-      toast.success(`Cleared all records from ${table.replace('_', ' ')}`);
-      await fetchAll();
-    } catch (err: any) {
-      toast.error(err.message || 'Clear failed');
-    }
-    setClearing(null);
-  };
-
   const statCards = [
     { label: 'Assets (DB)', value: stats.assets, expected: allAssets.length, color: 'text-primary', icon: Database },
     { label: 'Sensor Readings', value: stats.readings, color: 'text-chart-2', icon: Database },
@@ -93,7 +69,7 @@ export default function AdminPanel() {
           <h1 className="text-3xl font-bold glow-text flex items-center gap-3">
             <Shield className="h-8 w-8 text-primary" /> Admin Panel
           </h1>
-          <p className="text-muted-foreground mt-1">System administration — sync assets, manage data, monitor AI</p>
+          <p className="text-muted-foreground mt-1">System administration — sync assets, monitor data, AI predictions</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchAll} disabled={refreshing} className="gap-2">
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
@@ -120,7 +96,7 @@ export default function AdminPanel() {
         ))}
       </div>
 
-      {/* System Actions */}
+      {/* System Configuration */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> System Configuration</CardTitle>
@@ -134,23 +110,18 @@ export default function AdminPanel() {
           </div>
 
           <div className="border-t border-border pt-4">
-            <p className="text-sm font-medium mb-3 text-muted-foreground">Clear Old Data (fresh start — new data saves from now onwards)</p>
-            <div className="flex flex-wrap gap-3">
-              {(['sensor_readings', 'alerts_history', 'maintenance_tasks', 'ai_predictions'] as const).map(table => (
-                <Button key={table} variant="outline" size="sm" onClick={() => clearTable(table)} disabled={clearing === table} className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
-                  {clearing === table ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                  Clear {table.replace(/_/g, ' ')}
-                </Button>
-              ))}
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">System Data Policy — Fresh Start Active</p>
+                <p>Old alerts, predictions, sensor readings, and tasks have been cleared. New data is being saved from this point onwards.</p>
+                <p>• <strong>Sensor readings</strong> persist automatically when viewing Real-Time Monitoring.</p>
+                <p>• <strong>Alerts</strong> are generated from dataset loop and saved to DB every 3 seconds.</p>
+                <p>• <strong>Tasks</strong> are created manually via the Maintenance Planner using dataset asset IDs.</p>
+                <p>• <strong>AI Predictions</strong> are saved when running predictions on the Predictive Analytics page.</p>
+                <p>• All modules use the Solar & Wind Master Datasets exclusively — {allAssets.length} assets ({allAssets.filter(a => a.type === 'solar').length} solar, {allAssets.filter(a => a.type === 'wind').length} wind).</p>
+              </div>
             </div>
-          </div>
-
-          <div className="border-t border-border pt-4 text-xs text-muted-foreground space-y-1">
-            <p>• <strong>Sensor readings</strong> are saved automatically when viewing Real-Time Monitoring.</p>
-            <p>• <strong>Alerts</strong> are generated from dataset loop and persisted to DB every 3 seconds.</p>
-            <p>• <strong>Tasks</strong> are created manually via the Maintenance Planner using dataset asset IDs.</p>
-            <p>• <strong>AI Predictions</strong> are saved when running predictions on the Predictive Analytics page.</p>
-            <p>• All modules use the Solar & Wind Master Datasets exclusively — {allAssets.length} assets ({allAssets.filter(a => a.type === 'solar').length} solar, {allAssets.filter(a => a.type === 'wind').length} wind).</p>
           </div>
         </CardContent>
       </Card>
