@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logActivity } from '@/utils/activityLogger';
 import { motion } from 'framer-motion';
-import { FileText, Download, Plus, Clock, CheckCircle2, Loader2 } from 'lucide-react';
+import { FileText, Download, Plus, Clock, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -28,7 +29,6 @@ export default function ReportsCenter() {
     const doc = new jsPDF();
     const now = new Date();
 
-    // Header
     doc.setFillColor(17, 24, 39);
     doc.rect(0, 0, 210, 45, 'F');
     doc.setTextColor(255, 255, 255);
@@ -44,7 +44,6 @@ export default function ReportsCenter() {
 
     let y = 55;
 
-    // Summary Section
     doc.setTextColor(17, 24, 39);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -63,7 +62,6 @@ export default function ReportsCenter() {
     summaryLines.forEach(line => { doc.text(line, 15, y); y += 6; });
     y += 5;
 
-    // Alerts Table
     if (data.alerts && data.alerts.length > 0) {
       doc.setTextColor(17, 24, 39);
       doc.setFontSize(12);
@@ -71,28 +69,21 @@ export default function ReportsCenter() {
       doc.text('Alert Summary', 15, y);
       y += 3;
 
-      const alertRows = data.alerts.slice(0, 15).map(a => [
-        a.asset_id,
-        a.severity,
-        a.message?.slice(0, 50) || '',
-        a.resolved ? 'Yes' : 'No',
-        new Date(a.created_at).toLocaleDateString(),
-      ]);
-
       autoTable(doc, {
         startY: y,
         head: [['Asset', 'Severity', 'Message', 'Resolved', 'Date']],
-        body: alertRows,
+        body: data.alerts.slice(0, 15).map(a => [
+          a.asset_id, a.severity, a.message?.slice(0, 50) || '',
+          a.resolved ? 'Yes' : 'No', new Date(a.created_at).toLocaleDateString(),
+        ]),
         theme: 'striped',
         headStyles: { fillColor: [59, 130, 246], fontSize: 8 },
         bodyStyles: { fontSize: 7 },
         margin: { left: 15, right: 15 },
       });
-
       y = (doc as any).lastAutoTable.finalY + 10;
     }
 
-    // Performance Metrics
     if (data.readings && data.readings.length > 0) {
       if (y > 240) { doc.addPage(); y = 20; }
       doc.setTextColor(17, 24, 39);
@@ -101,19 +92,14 @@ export default function ReportsCenter() {
       doc.text('Performance Metrics', 15, y);
       y += 3;
 
-      const readingRows = data.readings.slice(0, 10).map((r: any) => [
-        r.asset_id,
-        r.asset_type,
-        r.power_output?.toFixed(1) || '0',
-        r.failure_type || 'normal',
-        r.rul_hours?.toFixed(0) || '0',
-        ((r.confidence || 0) * 100).toFixed(1) + '%',
-      ]);
-
       autoTable(doc, {
         startY: y,
         head: [['Asset', 'Type', 'Power (kW)', 'Failure Type', 'RUL (h)', 'Confidence']],
-        body: readingRows,
+        body: data.readings.slice(0, 10).map((r: any) => [
+          r.asset_id, r.asset_type, r.power_output?.toFixed(1) || '0',
+          r.failure_type || 'normal', r.rul_hours?.toFixed(0) || '0',
+          ((r.confidence || 0) * 100).toFixed(1) + '%',
+        ]),
         theme: 'striped',
         headStyles: { fillColor: [16, 185, 129], fontSize: 8 },
         bodyStyles: { fontSize: 7 },
@@ -121,7 +107,6 @@ export default function ReportsCenter() {
       });
     }
 
-    // Footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -155,12 +140,29 @@ export default function ReportsCenter() {
         parameters: { assets_count: assets?.length, tasks_count: tasks?.length, alerts_count: alerts?.length, readings_count: readings?.length },
       });
 
-      toast.success('PDF report generated and downloaded');
+      await logActivity('Generated report', 'report', reportType, { title });
+      toast.success('PDF report generated, downloaded, and saved');
       fetchReports();
     } catch (e) {
       toast.error('Failed to generate report');
     }
     setGenerating(false);
+  };
+
+  const redownloadReport = async (report: any) => {
+    try {
+      const [{ data: assets }, { data: tasks }, { data: alerts }, { data: readings }] = await Promise.all([
+        supabase.from('assets').select('*'),
+        supabase.from('maintenance_tasks').select('*'),
+        supabase.from('alerts_history').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('sensor_readings').select('*').order('created_at', { ascending: false }).limit(100),
+      ]);
+      const doc = generatePDF(report.title, { assets: assets || [], tasks: tasks || [], alerts: alerts || [], readings: readings || [] });
+      doc.save(`${report.title.replace(/\s+/g, '_')}.pdf`);
+      toast.success('Report re-downloaded');
+    } catch {
+      toast.error('Failed to re-download');
+    }
   };
 
   const exportCSV = (report: any) => {
@@ -179,7 +181,7 @@ export default function ReportsCenter() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="page-header mb-0">
           <h1>Reports Center</h1>
-          <p>Generate professional PDF reports with platform analytics</p>
+          <p>Generate, save, and revisit professional PDF reports</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={reportType} onValueChange={setReportType}>
@@ -221,9 +223,14 @@ export default function ReportsCenter() {
                     </div>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => exportCSV(report)} className="gap-1.5 h-7 text-[10px] shrink-0">
-                  <Download className="h-3 w-3" /> CSV
-                </Button>
+                <div className="flex gap-1.5 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => redownloadReport(report)} className="gap-1.5 h-7 text-[10px]">
+                    <RotateCcw className="h-3 w-3" /> PDF
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => exportCSV(report)} className="gap-1.5 h-7 text-[10px]">
+                    <Download className="h-3 w-3" /> CSV
+                  </Button>
+                </div>
               </div>
             </Card>
           </motion.div>

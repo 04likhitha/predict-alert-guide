@@ -14,59 +14,52 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const ADMIN_EMAIL = "admin@greentech-grip.com";
+    const ADMIN_EMAIL = "admin@gmail.com";
     const ADMIN_PASSWORD = "admin123";
 
-    // Check if admin already exists by listing users
+    // --- STEP 1: Clean all user-related data ---
+    // Delete in order to avoid FK issues
+    await supabase.from('activity_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('reports').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('maintenance_tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('ai_predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('alerts_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('sensor_readings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('spare_parts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('user_roles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('profiles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    // --- STEP 2: Delete all existing auth users ---
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const adminUser = existingUsers?.users?.find((u: any) => u.email === ADMIN_EMAIL);
-
-    let userId: string;
-
-    if (adminUser) {
-      userId = adminUser.id;
-    } else {
-      // Create admin user
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: ADMIN_EMAIL,
-        password: ADMIN_PASSWORD,
-        email_confirm: true,
-        user_metadata: { display_name: "Admin" },
-      });
-
-      if (createError) throw createError;
-      userId = newUser.user.id;
+    if (existingUsers?.users) {
+      for (const u of existingUsers.users) {
+        await supabase.auth.admin.deleteUser(u.id);
+      }
     }
 
-    // Check if admin role already assigned
-    const { data: existingRole } = await supabase
+    // --- STEP 3: Create fresh admin user ---
+    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
+      email_confirm: true,
+      user_metadata: { display_name: "admin" },
+    });
+
+    if (createError) throw createError;
+    const userId = newUser.user.id;
+
+    // Assign admin role
+    const { error: roleError } = await supabase
       .from("user_roles")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
+      .insert({ user_id: userId, role: "admin" });
 
-    if (!existingRole) {
-      // Remove default operator role if exists
-      await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role", "operator");
-
-      // Assign admin role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: userId, role: "admin" });
-
-      if (roleError) throw roleError;
-    }
+    if (roleError) throw roleError;
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Admin account ready",
-        credentials: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+        message: "System reset complete. Admin account ready.",
+        credentials: { email: ADMIN_EMAIL, username: "admin", password: ADMIN_PASSWORD },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
