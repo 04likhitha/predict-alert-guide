@@ -3,18 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logActivity } from '@/utils/activityLogger';
 import { Package, AlertTriangle, Plus, TrendingDown, Box } from 'lucide-react';
 
 export default function SparePartsForecasting() {
   const [parts, setParts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', part_number: '', category: '', compatible_asset_type: 'both', quantity_in_stock: '0', reorder_level: '5', unit_cost: '0', supplier: '', lead_time_days: '' });
+  const [form, setForm] = useState({
+    name: '', part_number: '', category: '', compatible_asset_type: 'wind',
+    quantity_in_stock: '0', reorder_level: '5', unit_cost: '0',
+    supplier: '', lead_time_days: '',
+  });
 
   const fetchParts = async () => {
     const { data } = await supabase.from('spare_parts').select('*').order('name');
@@ -26,19 +33,25 @@ export default function SparePartsForecasting() {
 
   const addPart = async () => {
     if (!form.name || !form.part_number || !form.category) {
-      toast.error('Name, part number, and category required');
+      toast.error('Part name, part number, and category are required');
       return;
     }
     const { error } = await supabase.from('spare_parts').insert({
-      ...form,
-      quantity_in_stock: parseInt(form.quantity_in_stock),
-      reorder_level: parseInt(form.reorder_level),
-      unit_cost: parseFloat(form.unit_cost),
+      name: form.name,
+      part_number: form.part_number,
+      category: form.category,
+      compatible_asset_type: form.compatible_asset_type,
+      quantity_in_stock: parseInt(form.quantity_in_stock) || 0,
+      reorder_level: parseInt(form.reorder_level) || 5,
+      unit_cost: parseFloat(form.unit_cost) || 0,
+      supplier: form.supplier || null,
       lead_time_days: form.lead_time_days ? parseInt(form.lead_time_days) : null,
     });
     if (error) { toast.error(error.message); return; }
-    toast.success('Part added');
+    toast.success('Spare part added successfully');
+    await logActivity('Added spare part', 'spare_part', form.part_number, { name: form.name, asset_type: form.compatible_asset_type });
     setDialogOpen(false);
+    setForm({ name: '', part_number: '', category: '', compatible_asset_type: 'wind', quantity_in_stock: '0', reorder_level: '5', unit_cost: '0', supplier: '', lead_time_days: '' });
     fetchParts();
   };
 
@@ -50,33 +63,62 @@ export default function SparePartsForecasting() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold glow-text">Spare Parts Forecasting</h1>
-          <p className="text-muted-foreground mt-1">Inventory management and demand forecasting</p>
+          <p className="text-muted-foreground mt-1">Inventory management, demand forecasting, and stock optimization</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2"><Plus className="h-4 w-4" /> Add Part</Button>
+            <Button className="gap-2"><Plus className="h-4 w-4" /> Add New Part</Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add Spare Part</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <Input placeholder="Part name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-              <Input placeholder="Part number *" value={form.part_number} onChange={e => setForm({ ...form, part_number: e.target.value })} />
-              <Input placeholder="Category *" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} />
-              <Select value={form.compatible_asset_type} onValueChange={v => setForm({ ...form, compatible_asset_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="wind">Wind</SelectItem>
-                  <SelectItem value="solar">Solar</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="grid grid-cols-2 gap-3">
-                <Input type="number" placeholder="Qty in stock" value={form.quantity_in_stock} onChange={e => setForm({ ...form, quantity_in_stock: e.target.value })} />
-                <Input type="number" placeholder="Reorder level" value={form.reorder_level} onChange={e => setForm({ ...form, reorder_level: e.target.value })} />
-                <Input type="number" placeholder="Unit cost ($)" value={form.unit_cost} onChange={e => setForm({ ...form, unit_cost: e.target.value })} />
-                <Input type="number" placeholder="Lead time (days)" value={form.lead_time_days} onChange={e => setForm({ ...form, lead_time_days: e.target.value })} />
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Add New Spare Part</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs">Part Name *</Label>
+                <Input placeholder="e.g. Turbine Gearbox" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
               </div>
-              <Input placeholder="Supplier" value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} />
+              <div>
+                <Label className="text-xs">Part Number *</Label>
+                <Input placeholder="e.g. SP-102" value={form.part_number} onChange={e => setForm({ ...form, part_number: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Category *</Label>
+                <Input placeholder="e.g. Gearbox, Inverter, Blade" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Compatible Asset Type</Label>
+                <Select value={form.compatible_asset_type} onValueChange={v => setForm({ ...form, compatible_asset_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="wind">Wind Turbine</SelectItem>
+                    <SelectItem value="solar">Solar Panel</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Quantity in Stock</Label>
+                  <Input type="number" value={form.quantity_in_stock} onChange={e => setForm({ ...form, quantity_in_stock: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Reorder Level</Label>
+                  <Input type="number" value={form.reorder_level} onChange={e => setForm({ ...form, reorder_level: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Unit Cost ($)</Label>
+                  <Input type="number" placeholder="e.g. 1200" value={form.unit_cost} onChange={e => setForm({ ...form, unit_cost: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Lead Time (days)</Label>
+                  <Input type="number" placeholder="e.g. 14" value={form.lead_time_days} onChange={e => setForm({ ...form, lead_time_days: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Supplier</Label>
+                <Input placeholder="e.g. WindParts Corp." value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} />
+              </div>
               <Button onClick={addPart} className="w-full">Add Part</Button>
             </div>
           </DialogContent>
@@ -139,7 +181,7 @@ export default function SparePartsForecasting() {
                   </TableCell>
                 </TableRow>
               ))}
-              {parts.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No parts in inventory</TableCell></TableRow>}
+              {parts.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No parts in inventory. Click "Add New Part" to get started.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
