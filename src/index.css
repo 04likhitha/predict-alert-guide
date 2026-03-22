@@ -57,11 +57,11 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    --sidebar: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-muted: 222 30% 18%;
+    --sidebar: 220 20% 97%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-muted: 220 14% 92%;
     --sidebar-accent: 217 91% 60%;
-    --sidebar-border: 222 30% 20%;
+    --sidebar-border: 220 13% 91%;
   }
 
   .dark {
